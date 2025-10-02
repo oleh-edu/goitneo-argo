@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: infra-tools
+spec:
+  project: default
+  source:
+    repoURL: https://charts.min.io/
+    targetRevision: 5.4.0
+    chart: minio
+    helm:
+      values: |
+        mode: standalone
+        rootUser: admin
+        rootPassword: password123
+        buckets:
+          - name: mlflow-artifacts
+            policy: none
+            purge: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mlflow
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true   # <-- namespace is created automatically

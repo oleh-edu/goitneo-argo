@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mlflow
+  namespace: infra-tools
+spec:
+  project: default
+  source:
+    repoURL: https://community-charts.github.io/helm-charts
+    chart: mlflow
+    targetRevision: 1.7.1
+    helm:
+      values: |
+        service:
+          type: ClusterIP
+          port: 5000
+        backendStore:
+          postgres:
+            enabled: true
+            host: postgres-postgresql.mlflow.svc.cluster.local
+            port: 5432
+            database: mlflow
+            user: mlflow
+            password: mlflow123
+            driver: psycopg2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mlflow
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true   # <-- namespace is created automatically

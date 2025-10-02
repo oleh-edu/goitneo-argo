@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: infra-tools
+data:
+  repositories: |
+    - name: bitnami-oci
+      url: oci://registry-1.docker.io/bitnamicharts
+      type: helm
+      enableOCI: true
