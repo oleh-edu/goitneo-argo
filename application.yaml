@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://charts.bitnami.com/bitnami
     chart: nginx
-    targetRevision: 15.17.1
+    targetRevision: 21.1.23
     helm:
       valueFiles:
         - values/nginx-values.yaml
