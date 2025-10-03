@@ -13,6 +13,13 @@ spec:
     targetRevision: 5.4.0
     helm:
       values: |
+        mode: standalone
+        replicas: 1
+        resources:
+          requests:
+            memory: 1Gi
+          limits:
+            memory: 1Gi
         auth:
           rootUser: minio
           rootPassword: minio123
@@ -21,12 +28,6 @@ spec:
           type: ClusterIP
         persistence:
           enabled: false
-        replicas: 1
-        resources:
-          requests:
-            memory: 1Gi
-          limits:
-            memory: 1Gi
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow
