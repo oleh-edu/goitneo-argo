@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: inference
+  namespace: infra-tools
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/oleh-edu/goitneo-argo.git
+    targetRevision: lesson-8-9
+    path: mlops-experiments/mlops-core/inference/
+    helm:
+      values: |
+        fullnameOverride: inference
+        image:
+          repository: localhost:5000/inference
+      valuesObject:
+        image:
+          # CI updates this tag to CI_COMMIT_SHORT_SHA in the pipeline (update_chart job)
+          tag: "latest"
+          repository: localhost:5000/inference
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inference
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

@@ -1,0 +1,4 @@
+1. Get the application URL:
+  export RELEASE={{ .Release.Name }}
+  export NAMESPACE={{ .Release.Namespace }}
+  kubectl get svc $RELEASE-inference -n $NAMESPACE

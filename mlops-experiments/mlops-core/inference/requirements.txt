@@ -1,0 +1,11 @@
+numpy==2.3.3
+fastapi
+uvicorn
+mlflow
+python-dotenv
+pandas
+scikit-learn
+boto3
+great-expectations
+prometheus_client
+loguru
