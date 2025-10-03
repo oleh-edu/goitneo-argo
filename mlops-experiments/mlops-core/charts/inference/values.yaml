@@ -4,7 +4,7 @@ fullnameOverride: inference
 replicaCount: 1
 image:
   repository: localhost:5000/inference
-  tag: "latest"
+  tag: "0.1.0"
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
