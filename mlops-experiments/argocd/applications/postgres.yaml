@@ -3,28 +3,34 @@ kind: Application
 metadata:
   name: postgres
   namespace: infra-tools
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: default
   source:
-    repoURL: oci://registry-1.docker.io/bitnamicharts
+    repoURL: https://charts.bitnami.com/bitnami
     chart: postgresql
-    targetRevision: 16.7.27
+    targetRevision: 12.5.6
     helm:
       values: |
+        image:
+          repository: bitnamilegacy/postgresql
+          tag: 15.3.0-debian-11-r7
+          pullPolicy: IfNotPresent
         auth:
           username: mlflow
           password: mlflow123
           database: mlflow
         primary:
           persistence:
-            enabled: false   # for Minikube without StorageClass
+            enabled: false
   destination:
-    server: https://kubernetes.default.svc
     namespace: mlflow
+    server: https://kubernetes.default.svc
   syncPolicy:
     automated:
-      selfHeal: true
       prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

@@ -23,6 +23,10 @@ spec:
             user: mlflow
             password: mlflow123
             driver: psycopg2
+        # Mlflow blob storage settings
+        artifactRoot:
+          # -- Specifies the default artifact root.
+          defaultArtifactRoot: "./mlflow-artifacts"
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow
