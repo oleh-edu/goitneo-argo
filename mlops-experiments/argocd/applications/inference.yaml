@@ -16,9 +16,8 @@ spec:
           repository: localhost:5000/inference
       valuesObject:
         image:
-          # CI updates this tag to CI_COMMIT_SHORT_SHA in the pipeline (update_chart job)
-          tag: "latest"
           repository: localhost:5000/inference
+          tag: "0.1.0"
   destination:
     server: https://kubernetes.default.svc
     namespace: inference
