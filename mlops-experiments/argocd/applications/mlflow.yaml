@@ -27,6 +27,13 @@ spec:
         artifactRoot:
           # -- Specifies the default artifact root.
           defaultArtifactRoot: "s3://mlflow-artifacts"
+        extraEnvVars:
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://minio.mlflow.svc.cluster.local:9000
+          - name: AWS_ACCESS_KEY_ID
+            value: minio
+          - name: AWS_SECRET_ACCESS_KEY
+            value: minio123
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow

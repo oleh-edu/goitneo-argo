@@ -8,15 +8,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: https://charts.min.io/
     chart: minio
-    targetRevision: 13.7.2
+    targetRevision: 5.4.0
     helm:
       values: |
-        image:
-          repository: bitnamilegacy/minio
-          tag: 2024.3.5-debian-12-r0
-          pullPolicy: IfNotPresent
         auth:
           rootUser: minio
           rootPassword: minio123
@@ -25,6 +21,12 @@ spec:
           type: ClusterIP
         persistence:
           enabled: false
+        replicas: 1
+        resources:
+          requests:
+            memory: 1Gi
+          limits:
+            memory: 1Gi
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow
