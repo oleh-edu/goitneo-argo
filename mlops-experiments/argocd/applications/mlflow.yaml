@@ -32,3 +32,5 @@ spec:
       prune: true
     syncOptions:
       - CreateNamespace=true   # <-- namespace is created automatically
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

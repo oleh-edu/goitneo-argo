@@ -4,6 +4,7 @@ metadata:
   name: argocd-cm
   namespace: infra-tools
 data:
+  helm.oci.enabled: "true"
   repositories: |
     - name: bitnami-oci
       url: oci://registry-1.docker.io/bitnamicharts

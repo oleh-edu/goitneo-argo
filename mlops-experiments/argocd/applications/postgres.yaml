@@ -6,15 +6,18 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: bitnami-oci
-    targetRevision: 16.7.27
+    repoURL: oci://registry-1.docker.io/bitnamicharts
     chart: postgresql
+    targetRevision: 16.7.27
     helm:
       values: |
         auth:
           username: mlflow
           password: mlflow123
           database: mlflow
+        primary:
+          persistence:
+            enabled: false   # for Minikube without StorageClass
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow
@@ -23,4 +26,6 @@ spec:
       selfHeal: true
       prune: true
     syncOptions:
-      - CreateNamespace=true   # <-- namespace is created automatically
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true
