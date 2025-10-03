@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/oleh-edu/goitneo-argo.git
     targetRevision: lesson-8-9
-    path: mlops-experiments/mlops-core/inference/
+    path: mlops-experiments/mlops-core/charts/inference
     helm:
       values: |
         fullnameOverride: inference
