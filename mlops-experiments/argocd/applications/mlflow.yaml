@@ -26,7 +26,7 @@ spec:
         # Mlflow blob storage settings
         artifactRoot:
           # -- Specifies the default artifact root.
-          defaultArtifactRoot: "./mlflow-artifacts"
+          defaultArtifactRoot: "s3://mlflow-artifacts"
   destination:
     server: https://kubernetes.default.svc
     namespace: mlflow
