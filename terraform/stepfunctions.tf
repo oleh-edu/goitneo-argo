@@ -78,6 +78,11 @@ locals {
   })
 }
 
+# CloudWatch Log Group for Step Functions
+resource "aws_cloudwatch_log_group" "sfn_logs" {
+  name              = "/aws/vendedlogs/states/${local.name_prefix}-train-pipeline"
+  retention_in_days = 14
+}
 resource "aws_sfn_state_machine" "train_pipeline" {
   name     = "${local.name_prefix}-train-pipeline"
   role_arn = aws_iam_role.sfn_role.arn
@@ -86,5 +91,8 @@ resource "aws_sfn_state_machine" "train_pipeline" {
   logging_configuration {
     include_execution_data = true
     level                  = "ALL"
+    log_destination        = "${aws_cloudwatch_log_group.sfn_logs.arn}:*"
   }
 }
+
+
