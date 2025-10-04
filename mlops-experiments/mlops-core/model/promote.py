@@ -66,7 +66,7 @@ def archive_current_in_stage(client: MlflowClient, model_name: str, target_stage
 
 def promote_version(client: MlflowClient, model_name: str, version: str, target_stage: str):
     print(f"Promoting version={version} to stage={target_stage}")
-    client.transition_model_version_stage(name=model_name, version=version, stage=target_stage)
+    client.set_registered_model_alias(name=model_name, alias=target_stage.lower(), version=version)
     print("Promotion completed.")
 
 

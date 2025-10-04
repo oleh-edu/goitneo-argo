@@ -2,6 +2,7 @@
 import os
 import shutil
 import tempfile
+import pandas as pd
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -37,8 +38,13 @@ exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
 experiment_id = exp.experiment_id if exp else mlflow.create_experiment(EXPERIMENT_NAME)
 
 # data
-X, y = load_iris(return_X_y=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, stratify=y)
+iris = load_iris(as_frame=True)
+X, y = iris.data.astype("float64"), iris.target.astype("float64")
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, random_state=42, stratify=y
+)
+
+input_example = pd.DataFrame(X_train[:1], columns=[f"feature_{i}" for i in range(X_train.shape[1])])
 
 best = {"acc": -1.0, "run_id": None}
 
@@ -69,7 +75,12 @@ for lr in LEARNING_RATES:
 
             mlflow.log_metric("accuracy", acc)
             mlflow.log_metric("loss", loss)
-            mlflow.sklearn.log_model(model, "model", registered_model_name=REGISTERED_MODEL_NAME)
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                name="model",
+                registered_model_name=REGISTERED_MODEL_NAME,
+                input_example=X_train.iloc[:1]
+            )
 
             # pushgateway
             run_id = mlflow.active_run().info.run_id
