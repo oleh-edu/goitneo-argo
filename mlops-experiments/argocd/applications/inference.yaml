@@ -17,7 +17,7 @@ spec:
       valuesObject:
         image:
           repository: localhost:5000/inference
-          tag: "0.1.0"
+          tag: "0.1.2"
   destination:
     server: https://kubernetes.default.svc
     namespace: inference

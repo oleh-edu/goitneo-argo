@@ -2,6 +2,7 @@ import os
 import sys
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Union, List, Dict
 import mlflow.pyfunc
 from dotenv import load_dotenv
 import pandas as pd
@@ -205,15 +206,25 @@ def _run_ge_validation(df: pd.DataFrame):
         _log_drift_event()
 
 class PredictRequest(BaseModel):
-    instances: list[list[float]]
+    instances: List[Union[List[float], Dict[str, float]]]
 
 @app.post("/predict")
 async def predict(payload: PredictRequest):
+    if not payload.instances:
+        return {"predictions": []}
     global _requests_since_validation
     start = datetime.now().timestamp()
     status_label = "ok"
     try:
-        df = pd.DataFrame(payload.instances)
+        expected_cols = ["sepal length (cm)", "sepal width (cm)", "petal length (cm)", "petal width (cm)"]
+
+        if isinstance(payload.instances[0], dict):
+            # dict -> already with column names
+            df = pd.DataFrame(payload.instances)
+        else:
+            # list -> need to add feature names
+            df = pd.DataFrame(payload.instances, columns=expected_cols)
+
         prediction = model.predict(df)
 
         # log prediction result
