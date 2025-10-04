@@ -1,5 +1,5 @@
 # Parameters
-REPO ?= your-org/your-repo
+REPO ?= oleh-edu/goitneo-argo
 
 # ---------------------------
 # Lambda packaging
