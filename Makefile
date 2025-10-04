@@ -1,4 +1,4 @@
-# Параметри
+# Parameters
 REPO ?= your-org/your-repo
 
 # ---------------------------
