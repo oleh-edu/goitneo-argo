@@ -1,0 +1,49 @@
+name: Reset Infrastructure
+
+on:
+  workflow_dispatch:   # manual trigger only
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-central-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: cd terraform && terraform init
+
+      - name: Terraform Destroy
+        run: cd terraform && terraform destroy -auto-approve
+
+      - name: Cleanup GitHub Secrets
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          gh secret remove STATE_MACHINE_ARN --repo "$REPO" || true
+          gh secret remove AWS_ROLE_TO_ASSUME --repo "$REPO" || true
+
+      - name: Terraform Apply
+        run: cd terraform && terraform apply -auto-approve
+
+      - name: Sync Outputs to GitHub Secrets
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          OUTPUTS=$(terraform -chdir=terraform output -json)
+          STATE_MACHINE_ARN=$(echo "$OUTPUTS" | jq -r .state_machine_arn.value)
+          GITHUB_ROLE_ARN=$(echo "$OUTPUTS" | jq -r .github_actions_role_arn.value)
+          gh secret set STATE_MACHINE_ARN --body "$STATE_MACHINE_ARN" --repo "$REPO"
+          gh secret set AWS_ROLE_TO_ASSUME --body "$GITHUB_ROLE_ARN" --repo "$REPO"

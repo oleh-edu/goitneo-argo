@@ -1,0 +1,31 @@
+name: Train Model
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  train-model:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write    # OIDC
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-central-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Run Step Function
+        run: |
+          aws stepfunctions start-execution \
+            --state-machine-arn ${{ secrets.STATE_MACHINE_ARN }} \
+            --name "train-$(date +%s)" \
+            --input "{\"source\":\"github-actions\", \"commit\":\"${GITHUB_SHA::7}\"}"

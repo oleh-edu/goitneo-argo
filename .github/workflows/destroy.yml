@@ -1,0 +1,38 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:   # manual trigger only
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-central-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: cd terraform && terraform init
+
+      - name: Terraform Destroy
+        run: cd terraform && terraform destroy -auto-approve
+
+      - name: Cleanup GitHub Secrets
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          echo "🗑️ Removing repository secrets..."
+          gh secret remove STATE_MACHINE_ARN --repo "$REPO" || true
+          gh secret remove AWS_ROLE_TO_ASSUME --repo "$REPO" || true
+          echo "✅ Secrets removed"
