@@ -21,7 +21,6 @@ The pipeline includes:
 │   ├── main.tf                      # Provider and locals
 │   ├── variables.tf                 # Input variables
 │   ├── outputs.tf                   # Outputs (ARNs)
-│   ├── data.tf                      # OIDC provider and policies
 │   ├── oidc.tf                      # GitHub OIDC provider
 │   ├── github_actions.tf            # IAM role for GitHub Actions
 │   ├── lambda.tf                    # Lambda role and modules
@@ -45,7 +44,7 @@ The pipeline includes:
 
 ---
 
-## ⚙️ Prerequisites
+## 🔑 Prerequisites
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.6  
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)  
@@ -116,7 +115,7 @@ Secrets created in GitHub repository:
 
 ---
 
-## 🔄 GitHub Actions Workflows
+## 🤖 GitHub Actions Workflows
 
 ### 1. Train Workflow
 
@@ -128,9 +127,9 @@ It executes the Step Function:
 ```yaml
 - name: Run Step Function
   run: |
-    aws stepfunctions start-execution \
-      --state-machine-arn ${{ secrets.STATE_MACHINE_ARN }} \
-      --name "train-$(date +%s)" \
+    aws stepfunctions start-execution \\
+      --state-machine-arn ${{ secrets.STATE_MACHINE_ARN }} \\
+      --name "train-$(date +%s)" \\
       --input "{\\"source\\":\\"github-actions\\", \\"commit\\":\\"${GITHUB_SHA::7}\\"}"
 ```
 
@@ -167,9 +166,9 @@ It runs:
 To run the Step Function manually:
 
 ```bash
-aws stepfunctions start-execution \
-  --state-machine-arn <STATE_MACHINE_ARN> \
-  --name "train-$(date +%s)" \
+aws stepfunctions start-execution \\
+  --state-machine-arn <STATE_MACHINE_ARN> \\
+  --name "train-$(date +%s)" \\
   --input '{"source":"manual-cli","note":"test run"}'
 ```
 
