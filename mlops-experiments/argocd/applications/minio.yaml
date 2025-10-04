@@ -20,10 +20,13 @@ spec:
             memory: 1Gi
           limits:
             memory: 1Gi
-        auth:
-          rootUser: minio
-          rootPassword: minio123
-        defaultBuckets: "mlflow-artifacts"
+        rootUser: minio
+        rootPassword: minio123
+        buckets:
+          - name: mlflow-artifacts
+            policy: none
+            purge: false
+            versioning: false
         service:
           type: ClusterIP
         persistence:
