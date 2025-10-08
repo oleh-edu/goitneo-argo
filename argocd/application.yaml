@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://git.example.com/your-group/aiops-quality-project.git
-    targetRevision: main
+    repoURL: https://github.com/oleh-edu/goitneo-argo.git
+    targetRevision: final-project
     path: helm
     helm:
       valueFiles:
