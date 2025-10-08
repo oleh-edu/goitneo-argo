@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aiops-quality.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "aiops-quality.name" . }}
+    helm.sh/chart: {{ include "aiops-quality.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "aiops-quality.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "aiops-quality.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+{{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: MODEL_PATH
+              value: {{ .Values.env.MODEL_PATH | quote }}
+            - name: BASELINE_PATH
+              value: {{ .Values.env.BASELINE_PATH | quote }}
+            - name: EXPECTATIONS_PATH
+              value: {{ .Values.env.EXPECTATIONS_PATH | quote }}
+            - name: DRIFT_WEBHOOK
+              value: {{ .Values.env.DRIFT_WEBHOOK | quote }}
+            - name: REQUIRE_WEBHOOK
+              value: {{ .Values.env.REQUIRE_WEBHOOK | quote }}
+          resources:
+{{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: model-artifacts
+              mountPath: /models
+      volumes:
+        - name: model-artifacts
+          configMap:
+            name: {{ include "aiops-quality.fullname" . }}-artifacts

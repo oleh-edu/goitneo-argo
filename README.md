@@ -1,349 +1,303 @@
-# MLOps Experiments – Iris SGD Classification Demo
+# 🧠 AIOps Quality Project
 
-This repository demonstrates a **production-like MLOps workflow** for the Iris classification problem.  
-It covers **model training & promotion with MLflow**, **containerized inference service with FastAPI**, **CI/CD with ArgoCD**, and **observability with Prometheus/Grafana**.
+AIOps Quality is a **production-ready example of an MLOps-quality assurance pipeline**, featuring:
+
+- A **FastAPI inference service** with drift detection (Great Expectations + statistical)
+- A **Helm chart** for deployment in Kubernetes
+- **ArgoCD GitOps integration** for automated sync and self-heal
+- **Prometheus + Grafana** for metrics and observability
+- **Loki/Promtail** for logging of input data and predictions
+- A **training pipeline** (`model/train.py`) for model retraining
+- Infrastructure managed and automated via **GitHub Actions**
 
 ---
 
 ## 📂 Project Structure
 
 ```bash
-.
-├── argocd/                     # ArgoCD manifests
-│   ├── applications/           # MLflow, MinIO, Postgres, PushGateway, Inference
-│   │   ├── inference.yaml
-│   │   ├── minio.yaml
-│   │   ├── mlflow.yaml
-│   │   ├── postgres.yaml
-│   │   └── pushgateway.yaml
-│   └── namespaces/             # Namespace definitions
-│       ├── mlflow-namespace.yaml
-│       └── monitoring-namespace.yaml
-├── best_model/                 # Best model exported by training
-│   ├── MLmodel
-│   ├── model.pkl
-│   ├── requirements.txt
-│   ├── conda.yaml
-│   ├── python_env.yaml
-│   ├── input_example.json
-│   └── serving_input_example.json
-├── mlops-core/
-│   ├── charts/inference/       # Helm chart for inference service
-│   │   ├── Chart.yaml
-│   │   ├── values.yaml
-│   │   └── templates/
-│   │       ├── deployment.yaml
-│   │       ├── ingress.yaml
-│   │       ├── service.yaml
-│   │       └── _helpers.tpl
-│   ├── inference/              # Inference service (FastAPI + Uvicorn)
-│   │   ├── main.py
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   └── expectations.json
-│   ├── model/                  # Training & promotion scripts
-│   │   ├── train_and_push.py
-│   │   ├── promote.py
-│   │   ├── requirements.txt
-│   │   └── best_model/         # Copy of best model after training
-│   │       ├── MLmodel
-│   │       ├── model.pkl
-│   │       ├── requirements.txt
-│   │       ├── conda.yaml
-│   │       └── python_env.yaml
-│   └── simulate_drift.sh       # Drift simulation script
-└── README.md
+aiops-quality-project/
+├── app/
+│   └── main.py                     # FastAPI inference service with drift detection
+├── model/
+│   └── train.py                    # Model training and artifact generation
+├── helm/
+│   ├── Chart.yaml                  # Helm chart metadata
+│   ├── values.yaml                 # Configurable values (image, ports, env)
+│   └── templates/
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       ├── configmap.yaml
+│       └── _helpers.tpl
+├── argocd/
+│   └── application.yaml            # ArgoCD Application manifest
+├── grafana/
+│   └── dashboards.json             # Grafana dashboard for inference metrics
+├── prometheus/
+│   └── additionalScrapeConfigs.yaml # Prometheus scrape configuration
+├── Dockerfile                      # Container definition
+└── README.md                       # Documentation
 ```
 
 ---
 
-## 🚀 Prerequisites
+## 🚀 Overview
 
-- **Minikube** (or Kubernetes cluster)
-- **kubectl**
-- **ArgoCD** (deployed in `infra-tools`)
-- **Docker** (to build inference image)
-- **Python 3.10+** for training scripts
+The project demonstrates a **complete MLOps feedback loop**:
 
----
-
-## 🏗️ Deploy Infrastructure on Minikube
-
-### 1. Start Minikube
-
-```bash
-minikube start --cpus=4 --memory=8192 --driver=docker
-```
-
-(Optional) Enable registry:
-
-```bash
-minikube addons enable registry
-```
-
-### 2. Apply Namespaces
-
-```bash
-kubectl apply -f argocd/namespaces/
-```
-
-### 3. Deploy Applications
-
-```bash
-kubectl apply -f argocd/applications/
-```
-
-Check:
-
-```bash
-argocd app list
-```
+1. **Model training** using `train.py` — generates `model.pkl`, `baseline.npy`, and a `Great Expectations` ruleset.
+2. **FastAPI inference service** loads these artifacts and:
+   - Handles `/predict` requests
+   - Calculates predictions
+   - Monitors for data drift
+   - Logs predictions and drift detection events
+   - Exposes Prometheus metrics
+3. **Helm & ArgoCD** ensure GitOps-based deployment and self-healing in Kubernetes.
+4. **Prometheus + Grafana** visualize requests, latency, and drift events.
+5. **GitHub Actions** can trigger retraining, reset, or destroy infrastructure.
 
 ---
 
-## 🔑 ArgoCD UI
+## ⚙️ Inference Service (FastAPI)
 
-Forward ArgoCD:
+Located in `app/main.py`.
 
-```bash
-kubectl port-forward svc/argocd-server -n infra-tools 8080:443
-argocd login localhost:8080 --insecure --username admin --password <your-password>
-```
+### Features
 
----
+- **/predict** — accepts JSON input, returns predictions
+- **/metrics** — exposes Prometheus-compatible metrics
+- **/health** — readiness endpoint
 
-## 📊 Services
+### Prometheus Metrics
 
-### MLflow
-
-```bash
-kubectl -n mlflow port-forward svc/mlflow-mlflow 5000:5000
-```
-
-Access: [http://localhost:5000](http://localhost:5000)
-
-### PushGateway
-
-```bash
-kubectl -n monitoring port-forward svc/pushgateway-prometheus-pushgateway 9091:9091
-```
-
-Access: [http://localhost:9091](http://localhost:9091)
+| Metric Name | Description |
+|--------------|-------------|
+| `inference_requests_total` | Total number of prediction requests |
+| `inference_latency_seconds` | Histogram of model latency |
+| `drift_events_total` | Number of detected drift events |
 
 ---
 
-## 🧪 Training & Promotion
+## 🧮 Drift Detection
 
-### Setup environment
+The service supports **two types of drift detection**:
 
-```bash
-cd mlops-core/model
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+### 1. Statistical Drift (built-in)
 
-### Train & log to MLflow
+- Calculates z-score difference from the baseline mean.
+- Triggered when `z > 5.0`.
 
-```bash
-python train_and_push.py
-```
+### 2. Great Expectations (optional)
 
-This will:
+- Loads `expectations.json` rules.
+- Fails validation if input distribution violates expectations.
 
-- Train SGDClassifier on Iris
-- Log to MLflow
-- Push metrics to PushGateway
-- Copy best model to `best_model/`
+When drift is detected:
 
-### Promote best model
-
-```bash
-python promote.py
-```
-
-Promotion rules:
-
-- Accuracy ≥ `PROMOTE_MIN_ACCURACY` (default 0.9)
-- Archives old version in Production
-- Sets alias `Production`
+- It’s logged (`Drift detected`).
+- `drift_events_total` metric increments.
+- Optional **webhook** is triggered via `DRIFT_WEBHOOK` environment variable.
 
 ---
 
-## 🐳 Build Inference Service
+## 🧰 Model Training (`model/train.py`)
+
+A simple example using the **Iris dataset**.
 
 ```bash
-cd mlops-core/inference
-docker build -t localhost:5000/inference:0.1.2 .
-docker push localhost:5000/inference:0.1.2
+python model/train.py
 ```
 
-ArgoCD app `inference.yaml` uses this image.
+This generates:
+
+- `model_artifacts/model.pkl`
+- `model_artifacts/baseline.npy`
+- `model_artifacts/expectations.json`
+
+Artifacts can be mounted in the container under `/models`.
 
 ---
 
-## ⚡ Inference API
+## 🐳 Docker Build
 
-Namespace: `inference`  
-Service: FastAPI + Uvicorn on `:8080`
-
-Endpoints:
-
-- `GET /healthz`
-- `GET /readyz`
-- `POST /predict`
-- `GET /metrics` (on port `8001`)
-
-### Test
+The `Dockerfile` builds a lightweight inference image.
 
 ```bash
-kubectl -n inference port-forward svc/inference 8080:8080
+docker build -t aiops-quality:latest .
+docker run -p 8000:8000 aiops-quality:latest
 ```
 
-Health:
+Then test locally:
 
 ```bash
-curl http://localhost:8080/healthz
+curl -X POST http://localhost:8000/predict   -H "Content-Type: application/json"   -d '{"inputs": [[5.1,3.5,1.4,0.2],[6.5,3.0,5.5,1.8]]}'
 ```
 
-Predict (list):
+Expected output:
 
-```bash
-curl -X POST http://localhost:8080/predict \
-  -H "Content-Type: application/json" \
-  -d '{"instances": [[5.1, 3.5, 1.4, 0.2], [6.2, 3.4, 5.4, 2.3]]}'
-```
-
-Predict (dict):
-
-```bash
-curl -X POST http://localhost:8080/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "instances": [
-      {"sepal length (cm)": 5.1, "sepal width (cm)": 3.5, "petal length (cm)": 1.4, "petal width (cm)": 0.2},
-      {"sepal length (cm)": 6.2, "sepal width (cm)": 3.4, "petal length (cm)": 5.4, "petal width (cm)": 2.3}
-    ]
-  }'
+```json
+{
+  "predictions": [0, 2],
+  "drift_detected": false,
+  "drift_score": 1.23
+}
 ```
 
 ---
 
-## 📉 Drift Simulation
+## ☸️ Helm Deployment
+
+Helm chart is located in `helm/`.
+
+### Example Install:
 
 ```bash
-kubectl -n inference port-forward svc/inference 8080:8080
-cd mlops-core
-chmod +x simulate_drift.sh
-./simulate_drift.sh
+helm install aiops-quality ./helm   --set image.repository=ghcr.io/your-org/aiops-quality   --set image.tag=latest
 ```
 
-This will send baseline + drifted requests.
+The deployment:
+
+- Mounts model artifacts as ConfigMap
+- Annotates pods for Prometheus scraping
+- Exposes the service on port `8000`
 
 ---
 
-## 📈 Monitoring in Grafana
+## 🔁 ArgoCD Integration
 
-```bash
-kubectl -n monitoring port-forward svc/grafana 8081:80
+`argocd/application.yaml` defines the GitOps deployment:
+
+```yaml
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
 ```
 
-Access: [http://localhost:8081](http://localhost:8081)  
-Login: `admin/mlops` → Dashboard → *Inference Service Overview*
+After adding this application:
+
+```bash
+kubectl apply -f argocd/application.yaml
+```
+
+ArgoCD will continuously sync from your repository and auto-heal if the deployment drifts.
 
 ---
 
-## ✅ Summary
+## 📊 Monitoring & Logging
 
-- Full MLOps workflow: **MLflow + MinIO + Postgres + ArgoCD + FastAPI + Prometheus**
-- Train/promote pipeline with metrics-based promotion
-- Containerized inference with drift detection
-- Ready to run in Minikube or production Kubernetes
+### Prometheus
 
-## 🔄 Typical Workflow (Step-by-Step)
+- Scrapes metrics via annotations:
 
-1. **Start Minikube cluster**  
+  ```yaml
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+  ```
 
-   ```bash
-   minikube start --cpus=4 --memory=8192 --driver=docker
-   ```
+### Grafana
 
-2. **Apply namespaces**  
+Dashboard (`grafana/dashboards.json`) includes:
 
-   ```bash
-   kubectl apply -f argocd/namespaces/
-   ```
+- Requests per second
+- Latency (p50/p90)
+- Drift events count
 
-3. **Deploy applications via ArgoCD**  
+### Loki + Promtail
 
-   ```bash
-   kubectl apply -f argocd/applications/
-   ```
+All logs are emitted via `stdout` and automatically collected by Promtail.
 
-4. **Access ArgoCD UI**  
+Example log line:
 
-   ```bash
-   kubectl port-forward svc/argocd-server -n infra-tools 8080:443
-   argocd login localhost:8080 --insecure --username admin --password <your-password>
-   ```
+```bash
+INFO {"event": "prediction", "inputs_sample": [[5.1,3.5,1.4,0.2]], "predictions_sample": [0], "drift_detected": false, "drift_score": 1.23}
+```
 
-5. **Port-forward key services**  
+---
 
-   ```bash
-   # MLflow
-   kubectl -n mlflow port-forward svc/mlflow-mlflow 5000:5000
+## 🧩 Prometheus Scrape Config (Optional)
 
-   # MinIO
-   kubectl -n mlflow port-forward svc/minio 9000:9000
+Example addition to Prometheus configuration:
 
-   # Postgres
-   kubectl -n mlflow port-forward svc/postgres-postgresql 5432:5432
+```yaml
+additionalScrapeConfigs:
+  - job_name: 'aiops-quality'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+```
 
-   # PushGateway
-   kubectl -n monitoring port-forward svc/pushgateway-prometheus-pushgateway 9091:9091
+---
 
-   # Grafana
-   kubectl -n monitoring port-forward svc/grafana 8081:80
+## ⚡ GitHub Actions (CI/CD)
 
-   # Inference API
-   kubectl -n inference port-forward svc/inference 8080:8080
-   ```
+Workflows are defined under `.github/workflows/`:
 
-6. **Run training & select best model**  
+- `reset.yml` – Reset infrastructure (destroy + apply)
+- `destroy.yml` – Destroy all Terraform-managed resources
+- `train-model.yml` – Trigger AWS Step Function to retrain model
 
-   ```bash
-   cd mlops-core/model
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+Example trigger:
 
-   python train_and_push.py
-   python promote.py
-   ```
+```bash
+gh workflow run "Train Model"
+```
 
-7. **Build & push inference image**  
+Each workflow authenticates via **OIDC** and manages secrets automatically.
 
-   ```bash
-   cd mlops-core/inference
-   docker build -t localhost:5000/inference:0.1.2 .
-   docker push localhost:5000/inference:0.1.2
-   ```
+---
 
-8. **Test inference service**  
+## ✅ Verification Checklist
 
-   ```bash
-   curl http://localhost:8080/healthz
-   curl -X POST http://localhost:8080/predict \
-     -H "Content-Type: application/json" \
-     -d '{"instances": [[5.1, 3.5, 1.4, 0.2]]}'
-   ```
+| Task | Verification Command |
+|------|----------------------|
+| API is running | `kubectl port-forward svc/aiops-quality 8000:80` |
+| Health check | `curl localhost:8000/health` |
+| Prediction | `curl -X POST localhost:8000/predict ...` |
+| Logs include drift | `kubectl logs -l app=aiops-quality` |
+| Prometheus scrape | Check `/metrics` |
+| Grafana metrics visible | Dashboard “AIOps Quality - Inference Overview” |
+| Retraining triggered | `gh workflow run train-model.yml` |
+| ArgoCD syncs deployment | `argocd app sync aiops-quality` |
 
-9. **Simulate drift**  
+---
 
-   ```bash
-   cd mlops-core
-   ./simulate_drift.sh
-   ```
+## 🔄 Retraining Workflow
 
-10. **Monitor in Grafana**  
-    Open: [http://localhost:8081](http://localhost:8081) → Dashboard → *Inference Service Overview*
+When drift is detected, or new data is available:
+
+1. Run GitHub Action `Train Model`.
+2. AWS Step Function starts model retraining.
+3. New artifacts are built and pushed to the container registry.
+4. ArgoCD detects Helm chart change → redeploys updated service.
+
+---
+
+## 🧩 Environment Variables
+
+| Variable | Description | Default |
+|-----------|-------------|----------|
+| `MODEL_PATH` | Path to trained model | `/models/model.pkl` |
+| `BASELINE_PATH` | Path to baseline dataset | `/models/baseline.npy` |
+| `EXPECTATIONS_PATH` | Path to Great Expectations suite | `/models/expectations.json` |
+| `DRIFT_WEBHOOK` | Optional webhook for drift alerts | `""` |
+| `REQUIRE_WEBHOOK` | Enforce webhook presence | `"false"` |
+
+---
+
+## 🧭 Summary
+
+This repository provides a **complete example of an AI/ML inference pipeline with drift monitoring, observability, and GitOps automation**, designed for reproducibility and production readiness.
+
+**Key Benefits:**
+
+- End-to-end reproducible workflow
+- Drift-aware inference with explainability
+- GitOps + CI/CD automation
+- Observability-first design
+- Easily extendable for new models or datasets

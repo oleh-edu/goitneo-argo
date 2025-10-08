@@ -1,9 +1,0 @@
-apiVersion: v2
-name: inference
-description: A simple Helm chart for a FastAPI/uvicorn service
-type: application
-version: 0.1.3
-appVersion: "912bea4c"
-
-maintainers:
-  - name: oleg_tkachuk

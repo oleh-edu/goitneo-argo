@@ -1,0 +1,32 @@
+image:
+  repository: ghcr.io/your-org/aiops-quality
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  MODEL_PATH: /models/model.pkl
+  BASELINE_PATH: /models/baseline.npy
+  EXPECTATIONS_PATH: /models/expectations.json
+  DRIFT_WEBHOOK: ""
+  REQUIRE_WEBHOOK: "false"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+modelArtifacts:
+  enabled: true
